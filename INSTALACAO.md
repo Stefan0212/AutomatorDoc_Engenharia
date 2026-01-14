@@ -20,10 +20,14 @@ Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
 ```env
 MONGODB_URI=mongodb://localhost:27017/
 DB_NAME=technical_docs
-EXCEL_PASSWORD=sua_senha_aqui
+EXCEL_PASSWORD=
 ```
 
-**Nota:** Ajuste `MONGODB_URI` conforme sua configuração do MongoDB. Se estiver usando MongoDB Atlas, use a string de conexão fornecida.
+**Notas:**
+- **MONGODB_URI:** 
+  - Para MongoDB local: `mongodb://localhost:27017/`
+  - Para MongoDB Atlas: `mongodb+srv://usuario:senha@cluster.mongodb.net/` (substitua `usuario` e `senha` pelas suas credenciais)
+- **EXCEL_PASSWORD:** Deixe vazio (variável não utilizada atualmente, reservada para futuras implementações)
 
 ### 3. Popular o banco de dados
 
@@ -36,8 +40,10 @@ python db_seed.py
 ### 4. Executar a aplicação
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
+
+**Nota:** Se o comando `streamlit` não for reconhecido no Windows, use `python -m streamlit run app.py` ao invés de apenas `streamlit run app.py`.
 
 A aplicação estará disponível em `http://localhost:8501`
 
@@ -65,5 +71,6 @@ A aplicação estará disponível em `http://localhost:8501`
 ### Erro ao processar Excel
 
 - Verifique se o arquivo tem as abas "Cover" e "Approvals"
-- Confirme se as células E15 e E23 estão preenchidas na aba Cover
+- Confirme se os rótulos "DOCUMENT TITLE:" e "AIRCRAFT MODEL:" estão presentes na aba Cover
+- Os valores devem estar nas células à direita dos rótulos
 - Certifique-se de que o arquivo não está protegido por senha (ou configure `EXCEL_PASSWORD` no `.env`)

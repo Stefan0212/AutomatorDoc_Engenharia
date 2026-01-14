@@ -8,7 +8,7 @@ from excel_handler import (
     process_excel_file,
     read_excel_file
 )
-from db_connection import get_approvers
+from db_connection import get_approvers, get_database
 import traceback
 
 # Configuração da página
@@ -49,78 +49,117 @@ def main():
             with st.spinner("Analisando o documento..."):
                 document_title_key, aircraft_model = extract_document_info(workbook)
             
-            # Exibe informações extraídas
+            if not document_title_key or not aircraft_model:
+                st.warning("⚠️ Não foi possível identificar o tipo de documento ou modelo da aeronave. Verifique se os rótulos 'DOCUMENT TITLE:' e 'AIRCRAFT MODEL:' estão presentes na aba Cover.")
+                return
+            
+            # Dashboard de Diagnóstico
+            st.success("✅ Informações identificadas com sucesso!")
+            st.markdown("### 📊 Dashboard de Diagnóstico")
             col1, col2 = st.columns(2)
             with col1:
-                st.info(f"**Document Title:** {document_title_key or 'Não encontrado'}")
+                st.info(f"📄 **Documento identificado:** {document_title_key}")
             with col2:
-                st.info(f"**Aircraft Model:** {aircraft_model or 'Não encontrado'}")
-            
-            if not document_title_key or not aircraft_model:
-                st.warning("⚠️ Não foi possível identificar o tipo de documento ou modelo da aeronave. Verifique se as células E15 e E23 na aba Cover estão preenchidas.")
-                return
+                st.info(f"✈️ **Modelo identificado:** {aircraft_model}")
             
             # Busca os aprovadores no banco de dados
             with st.spinner("Buscando aprovadores no banco de dados..."):
                 approvers_data = get_approvers(document_title_key, aircraft_model)
             
             if approvers_data is None:
-                st.error(f"❌ Nenhum registro encontrado para:\n- Document Title: {document_title_key}\n- Aircraft Model: {aircraft_model}\n\nPor favor, verifique se os dados estão cadastrados no banco de dados.")
-                
-                # Opção para preenchimento manual (futuro)
-                with st.expander("💡 Dica"):
-                    st.markdown("""
-                    Se você precisar cadastrar novos dados, execute o script `db_seed.py` 
-                    ou adicione manualmente no MongoDB na coleção `approvals_matrix`.
-                    """)
-                return
+                st.warning("⚠️ Nenhum registro encontrado no banco de dados. Você pode preencher manualmente os campos abaixo.")
+                approvers_default = {
+                    "prepared_by": "",
+                    "checked_by": "",
+                    "approved_by": "",
+                    "industrialization": "",
+                    "materials_process": ""
+                }
+            else:
+                approvers_default = approvers_data.get("approvers", {})
             
-            # Exibe os aprovadores encontrados
-            st.success("✅ Aprovadores encontrados no banco de dados!")
+            # Painel de Validação (Preview) - Campos editáveis
+            st.markdown("### ✏️ Painel de Validação")
+            st.markdown("Revise e edite os nomes dos aprovadores se necessário:")
             
-            with st.expander("👥 Visualizar aprovadores encontrados"):
-                approvers = approvers_data.get("approvers", {})
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Prepared by:**", approvers.get("prepared_by", "-"))
-                    st.write("**Checked by:**", approvers.get("checked_by", "-"))
-                    st.write("**Approved by:**", approvers.get("approved_by", "-"))
-                
-                with col2:
-                    st.write("**Industrialization:**", approvers.get("industrialization", "-"))
-                    st.write("**Material Process:**", approvers.get("mat_process", "-"))
+            # Campos de texto editáveis
+            prepared_by = st.text_input(
+                "Campo 1 - Prepared By",
+                value=approvers_default.get("prepared_by", ""),
+                key="prepared_by"
+            )
             
-            # Botão para processar
-            if st.button("🔄 Processar e Preencher Documento", type="primary", use_container_width=True):
-                try:
-                    with st.spinner("Processando o arquivo..."):
-                        # Processa o arquivo
-                        processed_file = process_excel_file(file_content, approvers_data)
-                    
-                    st.success("✅ Arquivo processado com sucesso!")
-                    
-                    # Gera nome do arquivo de saída
-                    original_filename = uploaded_file.name
-                    if "." in original_filename:
-                        name, ext = original_filename.rsplit(".", 1)
-                        output_filename = f"{name}_processado.{ext}"
-                    else:
-                        output_filename = f"{original_filename}_processado.xlsx"
-                    
-                    # Botão de download
-                    st.download_button(
-                        label="📥 Baixar Arquivo Processado",
-                        data=processed_file,
-                        file_name=output_filename,
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True
-                    )
-                    
-                except Exception as e:
-                    st.error(f"❌ Erro ao processar o arquivo: {str(e)}")
-                    with st.expander("🔍 Detalhes do erro"):
-                        st.code(traceback.format_exc())
+            checked_by = st.text_input(
+                "Campo 2 - Checked By",
+                value=approvers_default.get("checked_by", ""),
+                key="checked_by"
+            )
+            
+            approved_by = st.text_input(
+                "Campo 3 - Approved By",
+                value=approvers_default.get("approved_by", ""),
+                key="approved_by"
+            )
+            
+            industrialization = st.text_input(
+                "Campo 4 - Industrialization",
+                value=approvers_default.get("industrialization", ""),
+                key="industrialization"
+            )
+            
+            materials_process = st.text_input(
+                "Campo 5 - Materials Process",
+                value=approvers_default.get("materials_process", ""),
+                key="materials_process"
+            )
+            
+            # Prepara os dados dos aprovadores com os valores editados
+            approvers_final = {
+                "approvers": {
+                    "prepared_by": prepared_by,
+                    "checked_by": checked_by,
+                    "approved_by": approved_by,
+                    "industrialization": industrialization,
+                    "materials_process": materials_process
+                }
+            }
+            
+            # Botão de processamento
+            st.markdown("---")
+            if st.button("🚀 Gerar Documento Final", type="primary", use_container_width=True):
+                # Validação: verifica se pelo menos um campo foi preenchido
+                if not any([prepared_by, checked_by, approved_by, industrialization, materials_process]):
+                    st.error("❌ Por favor, preencha pelo menos um campo de aprovador.")
+                else:
+                    try:
+                        with st.spinner("Processando o arquivo..."):
+                            # Processa o arquivo com os valores validados/editados
+                            processed_file = process_excel_file(file_content, approvers_final)
+                        
+                        st.success("✅ Arquivo processado com sucesso!")
+                        
+                        # Gera nome do arquivo de saída
+                        original_filename = uploaded_file.name
+                        if "." in original_filename:
+                            name, ext = original_filename.rsplit(".", 1)
+                            output_filename = f"{name}_PREENCHIDO.{ext}"
+                        else:
+                            output_filename = f"{original_filename}_PREENCHIDO.xlsx"
+                        
+                        # Área de Download
+                        st.markdown("### ⬇️ Área de Download")
+                        st.download_button(
+                            label=f"📥 Download: {output_filename}",
+                            data=processed_file,
+                            file_name=output_filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True
+                        )
+                        
+                    except Exception as e:
+                        st.error(f"❌ Erro ao processar o arquivo: {str(e)}")
+                        with st.expander("🔍 Detalhes do erro"):
+                            st.code(traceback.format_exc())
         
         except ValueError as e:
             st.error(f"❌ {str(e)}")
@@ -145,8 +184,8 @@ def sidebar_info():
         
         ### Requisitos:
         - Arquivo deve ter as abas: **Cover** e **Approvals**
-        - A célula E15 (Cover) deve conter o Document Title
-        - A célula E23 (Cover) deve conter o Aircraft Model
+        - A aba Cover deve conter os rótulos: **DOCUMENT TITLE:** e **AIRCRAFT MODEL:**
+        - Os valores devem estar nas células à direita dos rótulos
         """)
         
         st.header("🔧 Status do Sistema")
