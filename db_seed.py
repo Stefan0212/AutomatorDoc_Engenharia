@@ -6,39 +6,43 @@ from db_connection import get_database
 def seed_database():
     """
     Popula o banco de dados com dados iniciais de exemplo.
+    Usa a estrutura conforme documentação: identifier e approvers.
     """
     try:
         db = get_database()
-        collection = db.approvals_matrix
+        collection = db.matrix_configs
         
-        # Dados de exemplo baseados na especificação
+        # Dados de exemplo baseados na especificação técnica
+        # Estrutura conforme documentação: identifier (title_keyword, prefix, aircraft) e approvers
         sample_data = [
             {
-                "documentTitle_key": "CONFIGURATION DOCUMENT",
-                "aircraft_model": "E2",
-                "workflow_step": "Engineering Release",
+                "identifier": {
+                    "title_keyword": "CONFIGURATION DOCUMENT",
+                    "prefix": "CF",
+                    "aircraft": "E2"
+                },
                 "approvers": {
                     "prepared_by": "Bruno Serpa",
                     "checked_by": "M. Camargo",
                     "approved_by": "Alan Araujo",
                     "industrialization": "Karla Castro",
-                    "mat_process": "James Delpinto"
-                },
-                "last_update": "2025-01-22"
+                    "materials_process": "James Delpinto"
+                }
             },
             # Adicione mais documentos conforme necessário
             {
-                "documentTitle_key": "CONFIGURATION DOCUMENT",
-                "aircraft_model": "E175",
-                "workflow_step": "Engineering Release",
+                "identifier": {
+                    "title_keyword": "CONFIGURATION DOCUMENT",
+                    "prefix": "CF",
+                    "aircraft": "E175"
+                },
                 "approvers": {
                     "prepared_by": "Bruno Serpa",
                     "checked_by": "M. Camargo",
                     "approved_by": "Alan Araujo",
                     "industrialization": "Karla Castro",
-                    "mat_process": "James Delpinto"
-                },
-                "last_update": "2025-01-22"
+                    "materials_process": "James Delpinto"
+                }
             }
         ]
         
@@ -49,15 +53,15 @@ def seed_database():
         for doc in sample_data:
             # Verifica se já existe (evita duplicação)
             existing = collection.find_one({
-                "documentTitle_key": doc["documentTitle_key"],
-                "aircraft_model": doc["aircraft_model"]
+                "identifier.title_keyword": doc["identifier"]["title_keyword"],
+                "identifier.aircraft": doc["identifier"]["aircraft"]
             })
             
             if not existing:
                 collection.insert_one(doc)
-                print(f"✓ Inserido: {doc['documentTitle_key']} - {doc['aircraft_model']}")
+                print(f"✓ Inserido: {doc['identifier']['title_keyword']} - {doc['identifier']['aircraft']}")
             else:
-                print(f"⊘ Já existe: {doc['documentTitle_key']} - {doc['aircraft_model']}")
+                print(f"⊘ Já existe: {doc['identifier']['title_keyword']} - {doc['identifier']['aircraft']}")
         
         print("\n✓ População do banco de dados concluída!")
         
