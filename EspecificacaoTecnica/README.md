@@ -260,11 +260,11 @@ def processar_documento_safran(caminho_input, nomes_aprovadores):
 
 # Dados de teste (Simulando o que viria do banco de dados/usuário)
 aprovadores_teste = {
-    'prepared': 'Bruno Serpa',
-    'checked': 'M. Camargo',
-    'approved': 'Alan Araujo',
-    'industrial': 'Karla Castro',
-    'mat_process': 'James Delpinto'
+    'prepared': 'Fernando',
+    'checked': 'Maria',
+    'approved': 'Alan',
+    'industrial': 'Karla',
+    'mat_process': 'Marcos'
 }
 ```
 ---
